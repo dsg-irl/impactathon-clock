@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IMPACTATHON Timer</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@800;900&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #050505; /* Pitch dark base */
+            color: #ffffff;
+            overflow: hidden;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        #video-bg-container {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+            opacity: 1; /* Full opacity for 50% brighter video */
+        }
+
+        .bg-video {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            transition: opacity 1.2s ease-in-out;
+            will-change: opacity, filter;
+            filter: brightness(1.5); /* Increased video brightness by 50% */
+        }
+
+        .video-overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: radial-gradient(circle at center, rgba(5, 5, 5, 0.0) 0%, rgba(5, 5, 5, 0.25) 100%);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        #bg-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .content-wrapper {
+            position: relative;
+            z-index: 10;
+            width: 100%; height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* Normal Digital Clock Digit Structure */
+        .digit-card {
+            position: relative;
+            border-radius: 1.25rem;
+            background: rgba(12, 14, 18, 0.45);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .digit-val {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-family: 'Space Mono', monospace;
+            filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 18px rgba(0, 0, 0, 0.8));
+            transition: color 1.2s ease, filter 1.2s ease;
+            line-height: 1;
+            user-select: none;
+            will-change: transform, opacity;
+        }
+
+        /* Normal Clock Tick Roll Animation */
+        .digit-val.digit-anim {
+            animation: digitTickRoll 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes digitTickRoll {
+            0% {
+                transform: translateY(-30%) scale(0.94);
+                opacity: 0.2;
+            }
+            100% {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* Pseudo-elements for Chromatic Aberration RGB Glitch Slices */
+        .digit-val::before,
+        .digit-val::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            opacity: 0;
+            background: transparent;
+        }
+
+        /* Rapid Delayed Distortion Glitch Triggered State */
+        .glitching .digit-val {
+            animation: glitchMainTwitch 0.32s steps(2, jump-none) infinite;
+        }
+
+        .glitching .digit-val::before {
+            opacity: 0.9;
+            color: #00ffff !important;
+            filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.85));
+            mix-blend-mode: screen;
+            animation: glitchCyanSlice 0.32s steps(3, jump-none) infinite;
+        }
+
+        .glitching .digit-val::after {
+            opacity: 0.9;
+            color: #ff0055 !important;
+            filter: drop-shadow(0 0 10px rgba(255, 0, 85, 0.85));
+            mix-blend-mode: screen;
+            animation: glitchMagentaSlice 0.32s steps(3, jump-none) infinite;
+        }
+
+        .glitching .shadow-text {
+            animation: glitchColonTwitch 0.32s steps(2, jump-none) infinite;
+        }
+
+        @keyframes glitchMainTwitch {
+            0% { transform: translate(0, 0) skewX(0); }
+            20% { transform: translate(-4px, 1px) skewX(-2.5deg); }
+            40% { transform: translate(4px, -2px) skewX(2deg); }
+            60% { transform: translate(-3px, -1px) skewX(1.5deg); }
+            80% { transform: translate(3px, 1px) skewX(-1.5deg); }
+            100% { transform: translate(0, 0) skewX(0); }
+        }
+
+        @keyframes glitchCyanSlice {
+            0% {
+                transform: translate(-4px, 0);
+                clip-path: polygon(0 15%, 100% 15%, 100% 35%, 0 35%);
+            }
+            33% {
+                transform: translate(5px, -1px);
+                clip-path: polygon(0 50%, 100% 50%, 100% 70%, 0 70%);
+            }
+            66% {
+                transform: translate(-3px, 2px);
+                clip-path: polygon(0 20%, 100% 20%, 100% 40%, 0 40%);
+            }
+            100% {
+                transform: translate(3px, -1px);
+                clip-path: polygon(0 70%, 100% 70%, 100% 90%, 0 90%);
+            }
+        }
+
+        @keyframes glitchMagentaSlice {
+            0% {
+                transform: translate(4px, 1px);
+                clip-path: polygon(0 45%, 100% 45%, 100% 65%, 0 65%);
+            }
+            33% {
+                transform: translate(-4px, -2px);
+                clip-path: polygon(0 10%, 100% 10%, 100% 30%, 0 30%);
+            }
+            66% {
+                transform: translate(5px, 1px);
+                clip-path: polygon(0 65%, 100% 65%, 100% 85%, 0 85%);
+            }
+            100% {
+                transform: translate(-3px, 0);
+                clip-path: polygon(0 35%, 100% 35%, 100% 55%, 0 55%);
+            }
+        }
+
+        @keyframes glitchColonTwitch {
+            0%, 100% { transform: translate(0, 0); color: rgba(255, 255, 255, 0.5); }
+            30% { transform: translate(-3px, 1px); color: #00ffff; }
+            70% { transform: translate(3px, -1px); color: #ff0055; }
+        }
+
+        /* Dynamic Color Shift Thresholds:
+           1. 75% of the time concluded (<= 25% remaining) -> Faint Pale Yellow
+           2. Remaining 5% of the time -> Urgent Vibrant Red */
+        .timer-warning-yellow .digit-card .digit-val {
+            color: #fef08a !important; /* Tailwind yellow-200 faint yellow */
+            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 20px rgba(234, 179, 8, 0.4)) !important;
+        }
+
+        .timer-urgent-red .digit-card .digit-val {
+            color: #ef4444 !important; /* Tailwind red-500 vibrant red */
+            filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 25px rgba(239, 68, 68, 0.65)) !important;
+            animation: urgentPulseText 2s infinite ease-in-out;
+        }
+
+        @keyframes urgentPulseText {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.85; }
+        }
+
+        /* Colon shadow */
+        .shadow-text {
+            text-shadow: 0 4px 15px rgba(0, 0, 0, 0.8);
+            transition: color 1.2s ease;
+        }
+        .timer-warning-yellow .shadow-text {
+            color: rgba(254, 240, 138, 0.7) !important;
+        }
+        .timer-urgent-red .shadow-text {
+            color: rgba(239, 68, 68, 0.8) !important;
+        }
+
+        /* Sleek Glassmorphic Modal */
+        .glass-modal {
+            background: rgba(18, 20, 26, 0.75);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+        }
+
+        /* Modals Transition */
+        .modal-enter {
+            opacity: 0;
+            transform: scale(0.96);
+            transition: opacity 0.25s ease-out, transform 0.25s ease-out;
+        }
+        .modal-enter-active {
+            opacity: 1;
+            transform: scale(1);
+        }
+        .modal-exit-active {
+            opacity: 0;
+            transform: scale(0.96);
+            transition: opacity 0.2s ease-in, transform 0.2s ease-in;
+        }
+        .hidden-modal {
+            display: none !important;
+        }
+
+        /* Toggle Button Transition */
+        .timer-group {
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+        .timer-group.fade-out {
+            opacity: 0;
+            pointer-events: none;
+            display: none;
+        }
+
+        /* Concluded Fullscreen Red Overlay */
+        #concluded-screen-overlay {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle at center, rgba(239, 68, 68, 0.25) 0%, rgba(185, 28, 28, 0.65) 100%);
+            mix-blend-mode: screen;
+            z-index: 5;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 2s ease-in-out;
+        }
+
+        body.event-concluded #concluded-screen-overlay {
+            opacity: 1;
+            animation: redScreenPulse 3s infinite ease-in-out;
+        }
+
+        @keyframes redScreenPulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Looping Background Video with Smooth Seamless Crossfade -->
+    <div id="video-bg-container">
+        <video id="bg-video-1" class="bg-video" muted playsinline preload="auto">
+            <source src="bg-video.mp4" type="video/mp4">
+        </video>
+        <video id="bg-video-2" class="bg-video" muted playsinline preload="none" style="opacity: 0;">
+            <source src="bg-video.mp4" type="video/mp4">
+        </video>
+    </div>
+    <div class="video-overlay"></div>
+    <div id="concluded-screen-overlay"></div>
+
+    <canvas id="bg-canvas"></canvas>
+
+    <div class="content-wrapper p-6 md:p-10">
+        
+        <!-- Header -->
+        <header class="flex justify-between items-start w-full">
+            <div class="w-10 h-10"></div> <!-- Spacer for centering -->
+            
+            <h1 class="text-5xl md:text-8xl lg:text-[7rem] font-heading font-black tracking-tighter uppercase text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.4)] text-center mt-2 md:mt-6 leading-none">
+                Impactathon
+            </h1>
+            
+            <button id="settings-btn" class="text-white/60 hover:text-white transition-all hover:rotate-90 duration-500 z-50 text-xl md:text-2xl p-2 focus:outline-none" aria-label="Settings">
+                <svg class="w-6 h-6 md:w-7 md:h-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+            </button>
+        </header>
+
+        <!-- Main Timer container -->
+        <main class="flex-grow flex flex-col items-center justify-center w-full" id="timer-main-container">
+            <div class="flex items-center justify-center gap-2 md:gap-4 lg:gap-6 font-mono w-full px-4">
+                
+                <!-- Hours -->
+                <div class="flex gap-2 md:gap-4 timer-group">
+                    <div class="digit-card w-20 h-32 md:w-32 md:h-48 lg:w-44 lg:h-72" id="digit-h1">
+                        <span class="digit-val text-6xl md:text-8xl lg:text-[11rem] font-bold" data-text="0">0</span>
+                    </div>
+                    <div class="digit-card w-20 h-32 md:w-32 md:h-48 lg:w-44 lg:h-72" id="digit-h2">
+                        <span class="digit-val text-6xl md:text-8xl lg:text-[11rem] font-bold" data-text="6">6</span>
+                    </div>
+                </div>
+
+                <!-- Colon -->
+                <div class="text-4xl md:text-7xl lg:text-9xl font-bold text-white/50 pb-2 md:pb-6 timer-group shadow-text">:</div>
+
+                <!-- Minutes -->
+                <div class="flex gap-2 md:gap-4 timer-group">
+                    <div class="digit-card w-20 h-32 md:w-32 md:h-48 lg:w-44 lg:h-72" id="digit-m1">
+                        <span class="digit-val text-6xl md:text-8xl lg:text-[11rem] font-bold" data-text="0">0</span>
+                    </div>
+                    <div class="digit-card w-20 h-32 md:w-32 md:h-48 lg:w-44 lg:h-72" id="digit-m2">
+                        <span class="digit-val text-6xl md:text-8xl lg:text-[11rem] font-bold" data-text="0">0</span>
+                    </div>
+                </div>
+
+                <!-- Seconds Colon (Togglable) -->
+                <div id="sec-colon" class="text-4xl md:text-7xl lg:text-9xl font-bold text-white/50 pb-2 md:pb-6 timer-group shadow-text">:</div>
+
+                <!-- Seconds (Togglable) -->
+                <div id="sec-group" class="flex gap-2 md:gap-3 timer-group">
+                    <div class="digit-card w-16 h-24 md:w-24 md:h-36 lg:w-32 lg:h-52" id="digit-s1">
+                        <span class="digit-val text-5xl md:text-7xl lg:text-8xl font-bold" data-text="0">0</span>
+                    </div>
+                    <div class="digit-card w-16 h-24 md:w-24 md:h-36 lg:w-32 lg:h-52" id="digit-s2">
+                        <span class="digit-val text-5xl md:text-7xl lg:text-8xl font-bold" data-text="0">0</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="status-indicator" class="mt-8 md:mt-10 text-xs md:text-sm lg:text-lg text-white/50 tracking-[0.25em] uppercase font-semibold font-heading">
+                Waiting to start...
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="flex justify-start items-end w-full pb-6 px-6 md:px-10">
+            <!-- Hidden Admin Trigger via Tinkethix Logo -->
+            <button id="admin-trigger-btn" class="group cursor-pointer focus:outline-none transition-transform hover:scale-105" title="Admin Settings">
+                <img src="tx-logo.png" alt="Tinkethix" class="h-10 md:h-12 lg:h-14 w-auto object-contain filter drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] group-hover:brightness-125 transition-all">
+            </button>
+        </footer>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md hidden-modal modal-enter">
+        <div class="glass-modal rounded-3xl p-8 w-[90%] max-w-md relative">
+            <button id="close-settings" class="absolute top-6 right-6 text-white/50 hover:text-white transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+            </button>
+            <h2 class="text-2xl font-bold mb-6 font-heading flex items-center gap-3">
+                <svg class="w-6 h-6 text-white/70" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+                Display & Sound Settings
+            </h2>
+            
+            <div class="space-y-6">
+                <!-- Toggle Tick Sound -->
+                <div class="flex items-center justify-between pb-4 border-b border-white/10">
+                    <div>
+                        <div class="font-medium text-lg">Tick Sound</div>
+                        <div class="text-xs text-white/50">Play tick-tick audio on every second passed</div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggle-tick-sound" class="sr-only peer" checked>
+                        <div class="w-14 h-7 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-white/40"></div>
+                    </label>
+                </div>
+
+                <!-- Toggle Seconds -->
+                <div class="flex items-center justify-between pb-4 border-b border-white/10">
+                    <div>
+                        <div class="font-medium text-lg">Show Seconds</div>
+                        <div class="text-xs text-white/50">Display live ticking flap cards</div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggle-seconds" class="sr-only peer" checked>
+                        <div class="w-14 h-7 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-white/40"></div>
+                    </label>
+                </div>
+
+                <!-- Floating Window (PiP) -->
+                <div class="flex items-center justify-between pb-4 border-b border-white/10">
+                    <div>
+                        <div class="font-medium text-lg">Floating Timer</div>
+                        <div class="text-xs text-white/50">Always-on-top Picture-in-Picture window</div>
+                    </div>
+                    <button id="btn-pip" class="bg-white/10 hover:bg-white/20 border border-white/10 text-white px-4 py-2 rounded-xl text-sm font-medium transition-all">
+                        Launch
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Modal -->
+    <div id="password-modal" class="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 backdrop-blur-xl hidden-modal modal-enter">
+        <div class="glass-modal rounded-3xl p-10 w-[90%] max-w-sm relative text-center">
+            <button id="close-password" class="absolute top-6 right-6 text-white/50 hover:text-white transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+            </button>
+            <div class="w-20 h-20 rounded-full bg-white/5 border border-white/10 mx-auto flex items-center justify-center mb-6">
+                <svg class="w-8 h-8 text-white/80" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </div>
+            <h2 class="text-2xl font-bold mb-2 font-heading">Master Access</h2>
+            <p class="text-sm text-white/50 mb-8">Enter master password for global controls.</p>
+            
+            <form id="password-form" class="space-y-5">
+                <input type="password" id="master-password-input" class="w-full bg-black/50 border border-white/10 rounded-xl px-5 py-4 text-center text-xl text-white focus:outline-none focus:border-white/30 transition-colors placeholder:text-white/20" placeholder="••••••••" required>
+                <button type="submit" class="w-full bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold py-4 rounded-xl transition-colors text-lg flex items-center justify-center">
+                    Verify Access
+                </button>
+            </form>
+            <p id="password-error" class="text-red-400 text-sm mt-4 hidden font-medium">Incorrect password.</p>
+        </div>
+    </div>
+
+    <!-- Admin Control Panel Modal -->
+    <div id="admin-modal" class="fixed inset-0 z-[120] flex items-center justify-center bg-black/90 backdrop-blur-xl hidden-modal modal-enter">
+        <div class="glass-modal rounded-3xl p-8 w-[90%] max-w-xl relative border border-white/10 shadow-2xl">
+            <button id="close-admin" class="absolute top-6 right-6 text-white/50 hover:text-white transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+            </button>
+            
+            <div class="flex items-center gap-4 mb-8 border-b border-white/10 pb-6">
+                <svg class="w-8 h-8 text-white/70" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                <h2 class="text-3xl font-bold font-heading">Master Dashboard</h2>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 mb-8">
+                <button id="admin-start" class="bg-white/5 hover:bg-white/15 text-white/90 hover:text-white font-semibold py-6 rounded-2xl transition-all flex flex-col items-center justify-center gap-3 border border-white/10 hover:border-white/30">
+                    <svg class="w-6 h-6 text-white/70" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg> Start Timer
+                </button>
+                <button id="admin-stop" class="bg-white/5 hover:bg-white/15 text-white/90 hover:text-white font-semibold py-6 rounded-2xl transition-all flex flex-col items-center justify-center gap-3 border border-white/10 hover:border-white/30">
+                    <svg class="w-6 h-6 text-white/70" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg> Pause Timer
+                </button>
+                <button id="admin-restart" class="bg-white/5 hover:bg-white/15 text-white/90 hover:text-white font-semibold py-5 rounded-2xl transition-all flex flex-row items-center justify-center gap-3 border border-white/10 hover:border-white/30 col-span-2 mt-2">
+                    <svg class="w-5 h-5 text-white/70" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg> Hard Restart (Reset to Default)
+                </button>
+            </div>
+            
+            <div class="border-t border-white/10 pt-6">
+                <h3 class="font-semibold text-sm text-white/60 mb-4 uppercase tracking-widest">Adjust Duration</h3>
+                <div class="flex gap-4 items-end">
+                    <div class="flex-1">
+                        <label class="block text-xs text-white/40 mb-2 uppercase tracking-wide">Hours</label>
+                        <input type="number" id="adjust-hours" min="0" max="99" value="6" class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-lg focus:outline-none focus:border-white/30">
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-xs text-white/40 mb-2 uppercase tracking-wide">Minutes</label>
+                        <input type="number" id="adjust-minutes" min="0" max="59" value="0" class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-lg focus:outline-none focus:border-white/30">
+                    </div>
+                    <button id="admin-adjust-btn" class="bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold py-3 px-8 rounded-xl transition-colors h-[52px]">
+                        Apply
+                    </button>
+                </div>
+                <p class="text-xs text-white/40 mt-3 flex items-center gap-2">
+                    <svg class="w-4 h-4 inline-block opacity-60" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    Applying will pause the timer and set the new duration across all devices.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Modal -->
+    <div id="alert-modal" class="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm hidden-modal modal-enter">
+        <div class="glass-modal rounded-2xl p-6 w-[90%] max-w-sm relative text-center">
+            <p id="alert-message" class="mb-6 mt-2 text-lg font-medium"></p>
+            <button id="close-alert" class="bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold py-3 px-8 rounded-xl transition-colors w-full">
+                Dismiss
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- SYNCHRONIZED SERVER TIMER STATE ---
+        let globalState = {
+            isRunning: false,
+            endTime: 0,
+            duration: 6 * 60 * 60 * 1000, 
+            pausedRemainingTime: 6 * 60 * 60 * 1000,
+            updatedAt: 0
+        };
+
+        // Local cache fallback
+        try {
+            const saved = localStorage.getItem('impactathon_timer_state');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed && typeof parsed.duration === 'number') {
+                    globalState = { ...globalState, ...parsed };
+                }
+            }
+        } catch(e) {}
+
+        let serverTimeOffset = 0;
+        let isPushingState = false;
+
+        // Fetch shared timer state from server
+        async function fetchServerTimerState() {
+            try {
+                const res = await fetch(`/api/timer?t=${Date.now()}`, { cache: 'no-store' });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success && data.state) {
+                        if (typeof data.serverTime === 'number') {
+                            serverTimeOffset = data.serverTime - Date.now();
+                        }
+                        if (!isPushingState) {
+                            globalState = {
+                                isRunning: Boolean(data.state.isRunning),
+                                duration: Number(data.state.duration) || (6 * 60 * 60 * 1000),
+                                pausedRemainingTime: Number(data.state.pausedRemainingTime) || 0,
+                                endTime: Number(data.state.endTime) || 0,
+                                updatedAt: Number(data.state.updatedAt) || Date.now()
+                            };
+
+                            try {
+                                localStorage.setItem('impactathon_timer_state', JSON.stringify(globalState));
+                            } catch(e) {}
+
+                            if (globalState.isRunning || globalState.pausedRemainingTime > 0) {
+                                resetConcludedAlarm();
+                            }
+                        }
+                    }
+                }
+            } catch(e) {
+                // Offline fallback - keeps running smoothly
+            }
+        }
+
+        // Push new state to server (invoked on admin action)
+        async function pushServerTimerState(updates) {
+            isPushingState = true;
+            const token = sessionStorage.getItem('admin_session_token') || '';
+            const payload = {
+                ...globalState,
+                ...updates
+            };
+
+            try {
+                const res = await fetch('/api/timer', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success && data.state) {
+                        if (typeof data.serverTime === 'number') {
+                            serverTimeOffset = data.serverTime - Date.now();
+                        }
+                        globalState = {
+                            isRunning: Boolean(data.state.isRunning),
+                            duration: Number(data.state.duration) || (6 * 60 * 60 * 1000),
+                            pausedRemainingTime: Number(data.state.pausedRemainingTime) || 0,
+                            endTime: Number(data.state.endTime) || 0,
+                            updatedAt: Number(data.state.updatedAt) || Date.now()
+                        };
+                        try {
+                            localStorage.setItem('impactathon_timer_state', JSON.stringify(globalState));
+                        } catch(e) {}
+                    }
+                } else if (res.status === 401) {
+                    showCustomAlert("Unauthorized. Please log in again with master password.");
+                    openModal('password-modal');
+                }
+            } catch(e) {
+                console.warn("Could not sync to server, running locally:", e);
+            } finally {
+                setTimeout(() => { isPushingState = false; }, 300);
+            }
+        }
+
+        // Periodic sync across all client devices
+        fetchServerTimerState();
+        setInterval(fetchServerTimerState, 1000);
+        window.addEventListener('focus', fetchServerTimerState);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') fetchServerTimerState();
+        });
+
+        // --- DIGITAL CLOCK DIGIT UPDATE & ANIMATION ---
+        const currentDigitValues = { h1: '', h2: '', m1: '', m2: '', s1: '', s2: '' };
+
+        function updateClockDigit(id, newValue) {
+            if (currentDigitValues[id] === newValue) return;
+            currentDigitValues[id] = newValue;
+
+            const wrapper = document.getElementById(`digit-${id}`);
+            if (!wrapper) return;
+
+            const valEl = wrapper.querySelector('.digit-val');
+            if (valEl) {
+                valEl.textContent = newValue;
+                valEl.setAttribute('data-text', newValue);
+                valEl.classList.remove('digit-anim');
+                void valEl.offsetWidth; // Force reflow to restart CSS slide animation
+                valEl.classList.add('digit-anim');
+            }
+        }
+
+        const updateFlipDigit = updateClockDigit;
+
+        // --- RAPID DELAYED DISTORTION GLITCH EFFECT ---
+        function triggerGlitchBurst() {
+            const container = document.getElementById('timer-main-container');
+            if (container) {
+                container.classList.add('glitching');
+                setTimeout(() => {
+                    container.classList.remove('glitching');
+                }, 320); // 320ms rapid digital distortion burst
+            }
+            // Delayed interval: stays stable for 3.5s to 6.5s before next rapid burst
+            const nextDelay = 3500 + Math.random() * 3000;
+            setTimeout(triggerGlitchBurst, nextDelay);
+        }
+        setTimeout(triggerGlitchBurst, 3000);
+
+        const statusIndicator = document.getElementById('status-indicator');
+        let hasTriggeredConcludedAlarm = false;
+
+        // Audio System (Web Audio API)
+        let audioCtx = null;
+        let audioUnlocked = false;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (AudioContextClass) {
+                    audioCtx = new AudioContextClass();
+                }
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume().catch(() => {});
+            }
+            return audioCtx;
+        }
+
+        function unlockAudio() {
+            const ctx = getAudioContext();
+            if (!ctx) return;
+            if (ctx.state === 'suspended') {
+                ctx.resume().catch(() => {});
+            }
+            // Silent 1-sample warmup buffer
+            try {
+                const buffer = ctx.createBuffer(1, 1, 22050);
+                const source = ctx.createBufferSource();
+                buffer.getChannelData(0)[0] = 0;
+                source.buffer = buffer;
+                source.connect(ctx.destination);
+                source.start(0);
+            } catch(e) {}
+            audioUnlocked = true;
+        }
+
+        // Global user interaction handlers to automatically unlock audio across PC & mobile
+        ['pointerdown', 'mousedown', 'mouseup', 'click', 'keydown', 'touchstart'].forEach(evt => {
+            window.addEventListener(evt, unlockAudio, { passive: true });
+        });
+        window.addEventListener('focus', unlockAudio);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') unlockAudio();
+        });
+
+        // Attempt immediate silent unlock on startup
+        try { unlockAudio(); } catch(e) {}
+
+        // --- TICK SOUND SYSTEM ---
+        let isTickSoundEnabled = true;
+        try {
+            const savedTick = localStorage.getItem('impactathon_tick_sound');
+            if (savedTick !== null) isTickSoundEnabled = (savedTick === 'true');
+        } catch(e) {}
+
+        let lastTickedSecond = null;
+
+        function triggerTickNode(ctx, isOdd) {
+            try {
+                // 20ms lookahead prevents audio buffer underrun/past-time clipping on PC sound drivers
+                const startTime = ctx.currentTime + 0.02;
+                const baseFreq = isOdd ? 1950 : 2500;
+
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                const highpass = ctx.createBiquadFilter();
+                const bandpass = ctx.createBiquadFilter();
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(baseFreq, startTime);
+                osc.frequency.exponentialRampToValueAtTime(500, startTime + 0.035);
+
+                highpass.type = 'highpass';
+                highpass.frequency.setValueAtTime(1000, startTime);
+
+                bandpass.type = 'bandpass';
+                bandpass.frequency.setValueAtTime(baseFreq, startTime);
+                bandpass.Q.setValueAtTime(2.4, startTime);
+
+                // Crisp, clearly audible transient click (gain 0.28)
+                gain.gain.setValueAtTime(0.0001, startTime);
+                gain.gain.linearRampToValueAtTime(0.28, startTime + 0.002);
+                gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.038);
+
+                osc.connect(highpass);
+                highpass.connect(bandpass);
+                bandpass.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start(startTime);
+                osc.stop(startTime + 0.040);
+            } catch(e) {}
+        }
+
+        function playTickAudio(isOdd) {
+            if (!isTickSoundEnabled) return;
+            try {
+                const ctx = getAudioContext();
+                if (!ctx) return;
+                if (ctx.state === 'suspended') {
+                    ctx.resume().then(() => {
+                        triggerTickNode(ctx, isOdd);
+                    }).catch(() => {});
+                    return;
+                }
+                triggerTickNode(ctx, isOdd);
+            } catch(e) {}
+        }
+
+        // Buzzer Sound (Gentle 1.0s low tone)
+        function playBuzzerAudio() {
+            try {
+                const ctx = getAudioContext();
+                const now = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(140, now);
+                osc.frequency.exponentialRampToValueAtTime(95, now + 1.0);
+
+                gain.gain.setValueAtTime(0.001, now);
+                gain.gain.linearRampToValueAtTime(0.18, now + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+
+                const filter = ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(450, now);
+
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 1.0);
+            } catch (e) {
+                console.error("Buzzer audio error:", e);
+            }
+        }
+
+        // Sweet Ringing Crystalline Chimes
+        function playSweetChimesAudio() {
+            try {
+                const ctx = getAudioContext();
+                const now = ctx.currentTime + 0.3;
+
+                const filter = ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(4000, now);
+                filter.connect(ctx.destination);
+
+                const chimeNotes = [
+                    { freq: 659.25, delay: 0.0, decay: 2.8, gain: 0.22 },  // E5
+                    { freq: 830.61, delay: 0.25, decay: 2.8, gain: 0.24 }, // G#5
+                    { freq: 987.77, delay: 0.50, decay: 3.2, gain: 0.25 }, // B5
+                    { freq: 1318.51, delay: 0.75, decay: 3.6, gain: 0.26 }, // E6
+                    { freq: 1661.22, delay: 1.00, decay: 4.0, gain: 0.22 }  // G#6
+                ];
+
+                chimeNotes.forEach(note => {
+                    const noteStartTime = now + note.delay;
+                    const noteEndTime = noteStartTime + note.decay;
+
+                    const noteGain = ctx.createGain();
+                    noteGain.gain.setValueAtTime(0.0001, noteStartTime);
+                    noteGain.gain.linearRampToValueAtTime(note.gain, noteStartTime + 0.012);
+                    noteGain.gain.exponentialRampToValueAtTime(0.0001, noteEndTime);
+                    noteGain.connect(filter);
+
+                    const oscPrimary = ctx.createOscillator();
+                    oscPrimary.type = 'sine';
+                    oscPrimary.frequency.setValueAtTime(note.freq, noteStartTime);
+                    oscPrimary.connect(noteGain);
+
+                    const oscHarmonic = ctx.createOscillator();
+                    oscHarmonic.type = 'sine';
+                    oscHarmonic.frequency.setValueAtTime(note.freq * 2.756, noteStartTime);
+                    
+                    const harmonicGain = ctx.createGain();
+                    harmonicGain.gain.value = 0.15;
+                    oscHarmonic.connect(harmonicGain);
+                    harmonicGain.connect(noteGain);
+
+                    oscPrimary.start(noteStartTime);
+                    oscHarmonic.start(noteStartTime);
+
+                    oscPrimary.stop(noteEndTime);
+                    oscHarmonic.stop(noteEndTime);
+                });
+            } catch (e) {
+                console.error("Sweet chimes audio error:", e);
+            }
+        }
+
+        function triggerEventConcluded() {
+            if (hasTriggeredConcludedAlarm) return;
+            hasTriggeredConcludedAlarm = true;
+
+            document.body.classList.add('event-concluded');
+            playBuzzerAudio();
+            playSweetChimesAudio();
+        }
+
+        function resetConcludedAlarm() {
+            if (!hasTriggeredConcludedAlarm && !document.body.classList.contains('event-concluded')) return;
+            hasTriggeredConcludedAlarm = false;
+            document.body.classList.remove('event-concluded');
+        }
+
+        function updateClockDOM() {
+            let remainingMs = 0;
+
+            if (globalState.isRunning) {
+                const nowSynced = Date.now() + serverTimeOffset;
+                remainingMs = globalState.endTime - nowSynced;
+                if (remainingMs <= 0) {
+                    remainingMs = 0;
+                    if (globalState.isRunning) { 
+                        globalState.isRunning = false;
+                        globalState.pausedRemainingTime = 0;
+                        globalState.endTime = 0;
+                    }
+                }
+            } else {
+                remainingMs = globalState.pausedRemainingTime;
+            }
+
+            const totalSeconds = Math.floor(Math.max(0, remainingMs) / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+
+            // Trigger Tick-Tick sound on every second passed while running
+            if (globalState.isRunning && totalSeconds > 0 && totalSeconds !== lastTickedSecond) {
+                lastTickedSecond = totalSeconds;
+                playTickAudio(totalSeconds % 2 === 1);
+            }
+
+            const pad = (num) => num.toString().padStart(2, '0');
+            const strH = pad(hours);
+            const strM = pad(minutes);
+            const strS = pad(seconds);
+
+            updateFlipDigit('h1', strH[0]);
+            updateFlipDigit('h2', strH[1]);
+            updateFlipDigit('m1', strM[0]);
+            updateFlipDigit('m2', strM[1]);
+            updateFlipDigit('s1', strS[0]);
+            updateFlipDigit('s2', strS[1]);
+
+            const totalDuration = globalState.duration || (6 * 60 * 60 * 1000);
+            const fractionRemaining = totalDuration > 0 ? (remainingMs / totalDuration) : 0;
+            const timerContainer = document.getElementById('timer-main-container');
+
+            if (timerContainer) {
+                if (fractionRemaining <= 0.05) {
+                    timerContainer.classList.add('timer-urgent-red');
+                    timerContainer.classList.remove('timer-warning-yellow');
+                } else if (fractionRemaining <= 0.25) {
+                    timerContainer.classList.add('timer-warning-yellow');
+                    timerContainer.classList.remove('timer-urgent-red');
+                } else {
+                    timerContainer.classList.remove('timer-warning-yellow', 'timer-urgent-red');
+                }
+            }
+
+            if (globalState.isRunning) {
+                resetConcludedAlarm();
+                const endDate = new Date(globalState.endTime);
+                let hours12 = endDate.getHours();
+                const ampm = hours12 >= 12 ? 'PM' : 'AM';
+                hours12 = hours12 % 12;
+                hours12 = hours12 ? hours12 : 12; 
+                const mins = pad(endDate.getMinutes());
+                statusIndicator.textContent = `Ends at ${hours12}:${mins} ${ampm}`;
+                if (fractionRemaining <= 0.05) {
+                    statusIndicator.className = "mt-8 md:mt-10 text-xs md:text-sm lg:text-lg tracking-[0.25em] uppercase font-semibold font-heading text-red-400";
+                } else if (fractionRemaining <= 0.25) {
+                    statusIndicator.className = "mt-8 md:mt-10 text-xs md:text-sm lg:text-lg tracking-[0.25em] uppercase font-semibold font-heading text-yellow-200";
+                } else {
+                    statusIndicator.className = "mt-8 md:mt-10 text-xs md:text-sm lg:text-lg tracking-[0.25em] uppercase font-semibold font-heading text-white/50";
+                }
+            } else if (remainingMs === 0) {
+                statusIndicator.textContent = "EVENT CONCLUDED";
+                statusIndicator.className = "mt-8 md:mt-10 text-xs md:text-sm lg:text-lg tracking-[0.25em] uppercase font-semibold font-heading text-red-500 animate-pulse";
+                triggerEventConcluded();
+            } else {
+                resetConcludedAlarm();
+                statusIndicator.textContent = "TIMER PAUSED";
+                statusIndicator.className = "mt-8 md:mt-10 text-xs md:text-sm lg:text-lg tracking-[0.25em] uppercase font-semibold font-heading text-yellow-500";
+            }
+
+            requestAnimationFrame(updateClockDOM);
+        }
+        
+        requestAnimationFrame(updateClockDOM);
+
+        // High-precision audio ticker backup: ensures 100% reliable ticks even when desktop tabs throttle requestAnimationFrame
+        setInterval(() => {
+            if (!globalState.isRunning) return;
+            const nowSynced = Date.now() + serverTimeOffset;
+            const rem = globalState.endTime - nowSynced;
+            if (rem <= 0) return;
+            const totalSec = Math.floor(rem / 1000);
+            if (totalSec > 0 && totalSec !== lastTickedSecond) {
+                lastTickedSecond = totalSec;
+                playTickAudio(totalSec % 2 === 1);
+            }
+        }, 100);
+
+        // --- SEAMLESS VIDEO BACKGROUND CROSSFADE ---
+        const bgVideo1 = document.getElementById('bg-video-1');
+        const bgVideo2 = document.getElementById('bg-video-2');
+        let activeVideo = bgVideo1;
+        let inactiveVideo = bgVideo2;
+        let isCrossfading = false;
+        let bg2Loaded = false;
+        const crossfadeDuration = 1.2;
+
+        function initBackgroundVideos() {
+            if (!bgVideo1 || !bgVideo2) return;
+            bgVideo1.muted = true;
+            bgVideo2.muted = true;
+            bgVideo1.style.opacity = '1';
+            bgVideo2.style.opacity = '0';
+
+            const playPromise = bgVideo1.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(() => {
+                    const resume = () => {
+                        bgVideo1.play().catch(() => {});
+                        window.removeEventListener('click', resume);
+                        window.removeEventListener('keydown', resume);
+                        window.removeEventListener('touchstart', resume);
+                    };
+                    window.addEventListener('click', resume, { once: true });
+                    window.addEventListener('keydown', resume, { once: true });
+                    window.addEventListener('touchstart', resume, { once: true });
+                });
+            }
+
+            bgVideo1.addEventListener('timeupdate', () => {
+                if (!bg2Loaded && bgVideo1.currentTime > 2) {
+                    bg2Loaded = true;
+                    bgVideo2.load();
+                }
+            });
+        }
+        initBackgroundVideos();
+
+        function updateVideoCrossfade() {
+            if (!activeVideo || !activeVideo.duration || isCrossfading) return;
+
+            const timeLeft = activeVideo.duration - activeVideo.currentTime;
+            if (timeLeft <= crossfadeDuration && timeLeft > 0) {
+                isCrossfading = true;
+                inactiveVideo.currentTime = 0;
+                inactiveVideo.play().catch(() => {});
+                inactiveVideo.style.opacity = '1';
+                activeVideo.style.opacity = '0';
+
+                setTimeout(() => {
+                    activeVideo.pause();
+                    const temp = activeVideo;
+                    activeVideo = inactiveVideo;
+                    inactiveVideo = temp;
+                    isCrossfading = false;
+                }, crossfadeDuration * 1000);
+            } else if (activeVideo.ended || activeVideo.currentTime >= activeVideo.duration) {
+                activeVideo.currentTime = 0;
+                activeVideo.play().catch(() => {});
+                activeVideo.style.opacity = '1';
+                inactiveVideo.style.opacity = '0';
+                inactiveVideo.pause();
+                isCrossfading = false;
+            }
+        }
+
+        // --- INTERACTIVE BACKGROUND CANVAS ---
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        let particles = [];
+        const mouse = { x: -1000, y: -1000 };
+
+        window.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; addParticles(); });
+        window.addEventListener('touchmove', (e) => {
+            if(e.touches.length > 0){ mouse.x = e.touches[0].clientX; mouse.y = e.touches[0].clientY; addParticles(); }
+        });
+
+        function addParticles() {
+            for(let i=0; i<4; i++){
+                particles.push({
+                    x: mouse.x + (Math.random() - 0.5) * 30,
+                    y: mouse.y + (Math.random() - 0.5) * 30,
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: (Math.random() - 0.5) * 2,
+                    life: 1,
+                    size: Math.random() * 2.5 + 1,
+                    color: `rgba(255, 255, 255, ${Math.random() * 0.5 + 0.1})`
+                });
+            }
+        }
+
+        function drawBackground() {
+            ctx.clearRect(0, 0, width, height);
+            updateVideoCrossfade();
+
+            if(Math.random() < 0.15) {
+                particles.push({
+                    x: Math.random() * width, y: Math.random() * height,
+                    vx: (Math.random() - 0.5) * 0.5, vy: (Math.random() - 0.5) * 0.5,
+                    life: 1, size: Math.random() * 2 + 0.5, color: `rgba(255, 255, 255, 0.1)`
+                });
+            }
+
+            for (let i = 0; i < particles.length; i++) {
+                let p = particles[i];
+                p.x += p.vx; p.y += p.vy; p.life -= 0.015;
+
+                if (p.life <= 0) { particles.splice(i, 1); i--; continue; }
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.life;
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    let p1 = particles[i], p2 = particles[j];
+                    let dx = p1.x - p2.x, dy = p1.y - p2.y;
+                    let dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < 100) {
+                        ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+                        ctx.strokeStyle = `rgba(255, 255, 255, ${(1 - dist / 100) * Math.min(p1.life, p2.life) * 0.4})`;
+                        ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(drawBackground);
+        }
+        drawBackground();
+
+        // --- UI & MODAL INTERACTIVITY ---
+        function openModal(id) {
+            const el = document.getElementById(id);
+            el.classList.remove('hidden-modal');
+            void el.offsetWidth;
+            el.classList.add('modal-enter-active');
+            setTimeout(() => el.classList.remove('modal-enter', 'modal-enter-active'), 300);
+        }
+
+        function closeModal(id) {
+            const el = document.getElementById(id);
+            el.classList.add('modal-exit-active');
+            setTimeout(() => {
+                el.classList.add('hidden-modal', 'modal-enter');
+                el.classList.remove('modal-exit-active');
+            }, 300);
+        }
+
+        function showCustomAlert(message) {
+            document.getElementById('alert-message').textContent = message;
+            openModal('alert-modal');
+        }
+        document.getElementById('close-alert').addEventListener('click', () => closeModal('alert-modal'));
+
+        document.getElementById('settings-btn').addEventListener('click', () => openModal('settings-modal'));
+        document.getElementById('close-settings').addEventListener('click', () => closeModal('settings-modal'));
+
+        // Toggle Tick Sound Setting
+        const toggleTickSoundInput = document.getElementById('toggle-tick-sound');
+        if (toggleTickSoundInput) {
+            toggleTickSoundInput.checked = isTickSoundEnabled;
+            toggleTickSoundInput.addEventListener('change', (e) => {
+                isTickSoundEnabled = e.target.checked;
+                try {
+                    localStorage.setItem('impactathon_tick_sound', isTickSoundEnabled ? 'true' : 'false');
+                } catch(e) {}
+                if (isTickSoundEnabled) {
+                    unlockAudio();
+                    playTickAudio(false);
+                }
+            });
+        }
+
+        // Toggle Seconds View
+        const toggleSecondsInput = document.getElementById('toggle-seconds');
+        const secGroup = document.getElementById('sec-group');
+        const secColon = document.getElementById('sec-colon');
+        
+        toggleSecondsInput.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                secGroup.classList.remove('fade-out');
+                secColon.classList.remove('fade-out');
+            } else {
+                secGroup.classList.add('fade-out');
+                secColon.classList.add('fade-out');
+            }
+        });
+
+        // Picture-in-Picture Logic (Floating Timer)
+        document.getElementById('btn-pip').addEventListener('click', async () => {
+            closeModal('settings-modal');
+            if (!('documentPictureInPicture' in window)) {
+                showCustomAlert("Document Picture-in-Picture API is not supported in this browser. Try Chrome/Edge desktop.");
+                return;
+            }
+
+            try {
+                const pipWindow = await window.documentPictureInPicture.requestWindow({ width: 600, height: 250 });
+                
+                [...document.styleSheets].forEach(sheet => {
+                    try {
+                        const style = document.createElement('style');
+                        style.textContent = [...sheet.cssRules].map(rule => rule.cssText).join('');
+                        pipWindow.document.head.appendChild(style);
+                    } catch (e) {}
+                });
+                
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = 'https://fonts.googleapis.com/css2?family=Poppins:wght@800;900&family=Space+Mono:wght@700&display=swap';
+                pipWindow.document.head.appendChild(link);
+
+                pipWindow.document.body.style.backgroundColor = '#050505';
+                pipWindow.document.body.style.display = 'flex';
+                pipWindow.document.body.style.alignItems = 'center';
+                pipWindow.document.body.style.justifyContent = 'center';
+
+                const timerMain = document.getElementById('timer-main-container');
+                pipWindow.document.body.appendChild(timerMain);
+
+                pipWindow.addEventListener('pagehide', () => {
+                    const contentWrapper = document.querySelector('.content-wrapper');
+                    contentWrapper.insertBefore(timerMain, contentWrapper.querySelector('footer'));
+                });
+            } catch (error) {
+                showCustomAlert("Failed to open floating window.");
+            }
+        });
+        
+        // --- ADMIN LOGIN & CONTROLS ---
+        document.getElementById('admin-trigger-btn').addEventListener('click', () => {
+            openModal('password-modal');
+            document.getElementById('master-password-input').value = '';
+            document.getElementById('password-error').classList.add('hidden');
+            setTimeout(() => document.getElementById('master-password-input').focus(), 100);
+        });
+        
+        document.getElementById('close-password').addEventListener('click', () => closeModal('password-modal'));
+
+        document.getElementById('password-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const passInput = document.getElementById('master-password-input');
+            const pass = passInput.value;
+            const errorEl = document.getElementById('password-error');
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+
+            const origText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<svg class="w-5 h-5 animate-spin inline-block mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Verifying...';
+            errorEl.classList.add('hidden');
+
+            try {
+                const res = await fetch('/api/verify-admin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: pass })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success) {
+                        if (data.token) sessionStorage.setItem('admin_session_token', data.token);
+                        passInput.value = '';
+                        closeModal('password-modal');
+                        setTimeout(() => openModal('admin-modal'), 350);
+                        return;
+                    }
+                }
+                errorEl.classList.remove('hidden');
+            } catch (err) {
+                // Offline fallback (opened locally via file:// without server)
+                const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pass));
+                const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+                if (hashHex === '9209fe5a352860a4920df6e2597a2413248754463be35a0a9430f9b9f51c5a52') {
+                    passInput.value = '';
+                    closeModal('password-modal');
+                    setTimeout(() => openModal('admin-modal'), 350);
+                } else {
+                    errorEl.classList.remove('hidden');
+                }
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = origText;
+            }
+        });
+
+        document.getElementById('close-admin').addEventListener('click', () => closeModal('admin-modal'));
+
+        document.getElementById('admin-start').addEventListener('click', async () => {
+            if (!globalState.isRunning && globalState.pausedRemainingTime > 0) {
+                await pushServerTimerState({
+                    isRunning: true,
+                    duration: globalState.duration,
+                    pausedRemainingTime: globalState.pausedRemainingTime
+                });
+            }
+        });
+
+        document.getElementById('admin-stop').addEventListener('click', async () => {
+            if (globalState.isRunning) {
+                const nowSynced = Date.now() + serverTimeOffset;
+                const remaining = Math.max(0, globalState.endTime - nowSynced);
+                await pushServerTimerState({
+                    isRunning: false,
+                    duration: globalState.duration,
+                    pausedRemainingTime: remaining,
+                    endTime: 0
+                });
+            }
+        });
+
+        document.getElementById('admin-restart').addEventListener('click', async () => {
+            resetConcludedAlarm();
+            await pushServerTimerState({
+                isRunning: false,
+                duration: globalState.duration,
+                pausedRemainingTime: globalState.duration,
+                endTime: 0
+            });
+        });
+
+        document.getElementById('admin-adjust-btn').addEventListener('click', async () => {
+            const h = parseInt(document.getElementById('adjust-hours').value) || 0;
+            const m = parseInt(document.getElementById('adjust-minutes').value) || 0;
+            const newDurationMs = (h * 60 * 60 * 1000) + (m * 60 * 1000);
+            
+            if (newDurationMs > 0) {
+                resetConcludedAlarm();
+                await pushServerTimerState({
+                    isRunning: false,
+                    duration: newDurationMs,
+                    pausedRemainingTime: newDurationMs,
+                    endTime: 0
+                });
+                showCustomAlert(`Global timer set to ${h}h ${m}m across all connected devices.`);
+            } else {
+                showCustomAlert("Please enter a valid duration.");
+            }
+        });
+    </script>
+</body>
+</html>

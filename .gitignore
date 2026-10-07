@@ -1,0 +1,20 @@
+# Security: Environment variables and secrets
+.env
+*.env
+.env.*
+.env.local
+
+# Local runtime state & caches
+.timer-state.json
+node_modules/
+package-lock.json
+dist/
+.vercel/
+
+# Backups & duplicate media cuts
+WhatsApp Video*
+impactathon_timer(*).html
+
+# System files
+.DS_Store
+Thumbs.db

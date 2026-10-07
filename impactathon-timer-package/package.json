@@ -1,0 +1,18 @@
+{
+  "name": "impactathon-timer",
+  "version": "1.0.0",
+  "description": "Real-time synchronized countdown timer for Impactathon with digital glitch effects",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "timer",
+    "impactathon",
+    "countdown"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@vercel/blob": "^2.8.0"
+  }
+}

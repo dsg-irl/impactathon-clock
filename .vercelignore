@@ -1,0 +1,13 @@
+node_modules
+impactathon-timer-package
+.env
+.env.*
+input.css
+tailwind.config.js
+dist
+local-server.js
+server.js
+image-removebg-preview.png
+tx-logo-trimmed.png
+WhatsApp Video*
+impactathon_timer*.html

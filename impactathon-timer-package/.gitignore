@@ -1,0 +1,13 @@
+# Security: Environment variables and secrets
+.env
+*.env
+.env.*
+
+# Dependencies
+node_modules/
+package-lock.json
+
+# System files
+.DS_Store
+Thumbs.db
+.vercel
