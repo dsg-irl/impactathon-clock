@@ -764,9 +764,9 @@
             }
         }
 
-        // Periodic sync across all client devices
+        // Periodic sync across all client devices (10s interval saves 90% quota; instant on tab focus)
         fetchServerTimerState();
-        setInterval(fetchServerTimerState, 1000);
+        setInterval(fetchServerTimerState, 10000);
         window.addEventListener('focus', fetchServerTimerState);
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') fetchServerTimerState();
