@@ -68,19 +68,25 @@
             justify-content: space-between;
         }
 
-        /* Normal Digital Clock Digit Structure */
+        /* Normal Digital Clock Digit Structure - Snug, defined to numbers */
         .digit-card {
             position: relative;
-            border-radius: 1.25rem;
-            background: rgba(12, 14, 18, 0.45);
+            border-radius: 0.85rem;
+            background: rgba(10, 12, 16, 0.55);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65), inset 0 1px 1px rgba(255, 255, 255, 0.2);
             overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
+            transition: border-color 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .glitching .digit-card {
+            border-color: rgba(0, 255, 255, 0.5);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.25), inset 0 0 12px rgba(255, 0, 85, 0.2);
         }
 
         .digit-val {
@@ -338,37 +344,37 @@
                 
                 <!-- Hours -->
                 <div class="flex gap-2 md:gap-4 timer-group">
-                    <div class="digit-card w-20 h-32 md:w-32 md:h-48 lg:w-44 lg:h-72" id="digit-h1">
-                        <span class="digit-val text-6xl md:text-8xl lg:text-[11rem] font-bold" data-text="0">0</span>
+                    <div class="digit-card w-14 h-20 md:w-24 md:h-32 lg:w-32 lg:h-44" id="digit-h1">
+                        <span class="digit-val text-5xl md:text-7xl lg:text-[8.5rem] font-bold" data-text="0">0</span>
                     </div>
-                    <div class="digit-card w-20 h-32 md:w-32 md:h-48 lg:w-44 lg:h-72" id="digit-h2">
-                        <span class="digit-val text-6xl md:text-8xl lg:text-[11rem] font-bold" data-text="6">6</span>
+                    <div class="digit-card w-14 h-20 md:w-24 md:h-32 lg:w-32 lg:h-44" id="digit-h2">
+                        <span class="digit-val text-5xl md:text-7xl lg:text-[8.5rem] font-bold" data-text="6">6</span>
                     </div>
                 </div>
 
                 <!-- Colon -->
-                <div class="text-4xl md:text-7xl lg:text-9xl font-bold text-white/50 pb-2 md:pb-6 timer-group shadow-text">:</div>
+                <div class="text-3xl md:text-6xl lg:text-8xl font-bold text-white/50 pb-1 md:pb-2 timer-group shadow-text">:</div>
 
                 <!-- Minutes -->
                 <div class="flex gap-2 md:gap-4 timer-group">
-                    <div class="digit-card w-20 h-32 md:w-32 md:h-48 lg:w-44 lg:h-72" id="digit-m1">
-                        <span class="digit-val text-6xl md:text-8xl lg:text-[11rem] font-bold" data-text="0">0</span>
+                    <div class="digit-card w-14 h-20 md:w-24 md:h-32 lg:w-32 lg:h-44" id="digit-m1">
+                        <span class="digit-val text-5xl md:text-7xl lg:text-[8.5rem] font-bold" data-text="0">0</span>
                     </div>
-                    <div class="digit-card w-20 h-32 md:w-32 md:h-48 lg:w-44 lg:h-72" id="digit-m2">
-                        <span class="digit-val text-6xl md:text-8xl lg:text-[11rem] font-bold" data-text="0">0</span>
+                    <div class="digit-card w-14 h-20 md:w-24 md:h-32 lg:w-32 lg:h-44" id="digit-m2">
+                        <span class="digit-val text-5xl md:text-7xl lg:text-[8.5rem] font-bold" data-text="0">0</span>
                     </div>
                 </div>
 
                 <!-- Seconds Colon (Togglable) -->
-                <div id="sec-colon" class="text-4xl md:text-7xl lg:text-9xl font-bold text-white/50 pb-2 md:pb-6 timer-group shadow-text">:</div>
+                <div id="sec-colon" class="text-3xl md:text-6xl lg:text-8xl font-bold text-white/50 pb-1 md:pb-2 timer-group shadow-text">:</div>
 
                 <!-- Seconds (Togglable) -->
                 <div id="sec-group" class="flex gap-2 md:gap-3 timer-group">
-                    <div class="digit-card w-16 h-24 md:w-24 md:h-36 lg:w-32 lg:h-52" id="digit-s1">
-                        <span class="digit-val text-5xl md:text-7xl lg:text-8xl font-bold" data-text="0">0</span>
+                    <div class="digit-card w-12 h-16 md:w-16 md:h-24 lg:w-24 lg:h-32" id="digit-s1">
+                        <span class="digit-val text-4xl md:text-5xl lg:text-7xl font-bold" data-text="0">0</span>
                     </div>
-                    <div class="digit-card w-16 h-24 md:w-24 md:h-36 lg:w-32 lg:h-52" id="digit-s2">
-                        <span class="digit-val text-5xl md:text-7xl lg:text-8xl font-bold" data-text="0">0</span>
+                    <div class="digit-card w-12 h-16 md:w-16 md:h-24 lg:w-24 lg:h-32" id="digit-s2">
+                        <span class="digit-val text-4xl md:text-5xl lg:text-7xl font-bold" data-text="0">0</span>
                     </div>
                 </div>
             </div>
@@ -653,20 +659,30 @@
 
         const updateFlipDigit = updateClockDigit;
 
-        // --- RAPID DELAYED DISTORTION GLITCH EFFECT ---
+        // --- RAPID FREQUENT DISTORTION GLITCH EFFECT ---
         function triggerGlitchBurst() {
             const container = document.getElementById('timer-main-container');
             if (container) {
                 container.classList.add('glitching');
+                const burstDuration = 180 + Math.random() * 120; // 180ms - 300ms snappy distortion
                 setTimeout(() => {
                     container.classList.remove('glitching');
-                }, 320); // 320ms rapid digital distortion burst
+                    // 35% chance of an immediate micro echo-glitch (cyber stutter)
+                    if (Math.random() < 0.35) {
+                        setTimeout(() => {
+                            container.classList.add('glitching');
+                            setTimeout(() => {
+                                container.classList.remove('glitching');
+                            }, 80);
+                        }, 60);
+                    }
+                }, burstDuration);
             }
-            // Delayed interval: stays stable for 3.5s to 6.5s before next rapid burst
-            const nextDelay = 3500 + Math.random() * 3000;
+            // Frequent interval: bursts occur every 1.2s to 2.4s
+            const nextDelay = 1200 + Math.random() * 1200;
             setTimeout(triggerGlitchBurst, nextDelay);
         }
-        setTimeout(triggerGlitchBurst, 3000);
+        setTimeout(triggerGlitchBurst, 800);
 
         const statusIndicator = document.getElementById('status-indicator');
         let hasTriggeredConcludedAlarm = false;

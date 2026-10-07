@@ -18,3 +18,5 @@ impactathon_timer(*).html
 # System files
 .DS_Store
 Thumbs.db
+.vercel
+.env*
