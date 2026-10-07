@@ -13,7 +13,7 @@ const DEFAULT_STATE = {
 let inMemoryState = { ...DEFAULT_STATE };
 let lastBlobFetch = 0;
 let cachedBlobUrl = null;
-const BLOB_CACHE_MS = 10000; // 10 seconds in-memory cache to save 95% Blob calls
+const BLOB_CACHE_MS = 15000; // 15 seconds in-memory cache timestep
 
 function verifySessionToken(token, secret) {
     if (!token || typeof token !== 'string') return false;
@@ -38,10 +38,10 @@ module.exports = async (req, res) => {
 
     if (req.method === 'GET') {
         const now = Date.now();
-        // Edge CDN Cache: Vercel CDN caches response for 4 seconds, cutting requests by 90%
-        res.setHeader('Cache-Control', 'public, max-age=4, s-maxage=4, stale-while-revalidate=8');
+        // Edge CDN Cache: Vercel CDN caches response for 6 seconds, cutting requests further
+        res.setHeader('Cache-Control', 'public, max-age=6, s-maxage=6, stale-while-revalidate=12');
 
-        // 1. Fast in-memory cache: if read within last 10s, return instantly with 0 Blob requests
+        // 1. Fast in-memory cache: if read within last 15s, return instantly with 0 Blob requests
         if (now - lastBlobFetch < BLOB_CACHE_MS && inMemoryState.updatedAt > 0) {
             const state = { ...inMemoryState };
             if (state.isRunning && state.endTime > 0 && now >= state.endTime) {

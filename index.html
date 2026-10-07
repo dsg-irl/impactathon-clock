@@ -632,13 +632,17 @@
                 <div class="flex gap-4 items-end">
                     <div class="flex-1">
                         <label class="block text-xs text-white/40 mb-2 uppercase tracking-wide">Hours</label>
-                        <input type="number" id="adjust-hours" min="0" max="99" value="6" class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-lg focus:outline-none focus:border-white/30">
+                        <input type="number" id="adjust-hours" min="0" max="99" value="6" class="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-3 text-white text-lg focus:outline-none focus:border-white/30 text-center">
                     </div>
                     <div class="flex-1">
                         <label class="block text-xs text-white/40 mb-2 uppercase tracking-wide">Minutes</label>
-                        <input type="number" id="adjust-minutes" min="0" max="59" value="0" class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white text-lg focus:outline-none focus:border-white/30">
+                        <input type="number" id="adjust-minutes" min="0" max="59" value="0" class="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-3 text-white text-lg focus:outline-none focus:border-white/30 text-center">
                     </div>
-                    <button id="admin-adjust-btn" class="bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold py-3 px-8 rounded-xl transition-colors h-[52px]">
+                    <div class="flex-1">
+                        <label class="block text-xs text-white/40 mb-2 uppercase tracking-wide">Seconds</label>
+                        <input type="number" id="adjust-seconds" min="0" max="59" value="0" class="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-3 text-white text-lg focus:outline-none focus:border-white/30 text-center">
+                    </div>
+                    <button id="admin-adjust-btn" class="bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold py-3 px-6 rounded-xl transition-colors h-[52px]">
                         Apply
                     </button>
                 </div>
@@ -764,9 +768,9 @@
             }
         }
 
-        // Periodic sync across all client devices (10s interval saves 90% quota; instant on tab focus)
+        // Periodic sync across all client devices (15s timestep saves 95% quota; instant on tab focus)
         fetchServerTimerState();
-        setInterval(fetchServerTimerState, 10000);
+        setInterval(fetchServerTimerState, 15000);
         window.addEventListener('focus', fetchServerTimerState);
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') fetchServerTimerState();
@@ -1490,7 +1494,8 @@
         document.getElementById('admin-adjust-btn').addEventListener('click', async () => {
             const h = parseInt(document.getElementById('adjust-hours').value) || 0;
             const m = parseInt(document.getElementById('adjust-minutes').value) || 0;
-            const newDurationMs = (h * 60 * 60 * 1000) + (m * 60 * 1000);
+            const s = parseInt(document.getElementById('adjust-seconds').value) || 0;
+            const newDurationMs = (h * 3600 + m * 60 + s) * 1000;
             
             if (newDurationMs > 0) {
                 resetConcludedAlarm();
@@ -1500,7 +1505,11 @@
                     pausedRemainingTime: newDurationMs,
                     endTime: 0
                 });
-                showCustomAlert(`Global timer set to ${h}h ${m}m across all connected devices.`);
+                const parts = [];
+                if (h > 0) parts.push(`${h}h`);
+                if (m > 0) parts.push(`${m}m`);
+                if (s > 0) parts.push(`${s}s`);
+                showCustomAlert(`Global timer set to ${parts.join(' ') || `${s}s`} across all connected devices.`);
             } else {
                 showCustomAlert("Please enter a valid duration.");
             }
